@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+    <start>
+        <element name="test">
+            <zeroOrMore>
+                <element name="testcase">
+                    <ref name="testcaseContent" />
+                </element>
+            </zeroOrMore>
+        </element>
+    </start>
+    
+    <define name="testcaseContent">
+        <attribute name="name" />
+            
+        <element name="request">
+            <ref name="requestContent" />
+        </element>
+            
+        <optional>
+            <element name="status">
+                <text />
+            </element>
+        </optional>
+        
+        <optional>
+            <element name="contents">
+                <attribute name="type">
+                    <choice>
+                        <value>python</value>
+                        <value>text</value>
+                    </choice>
+                </attribute>
+                    
+                <text />
+            </element>
+        </optional>
+    </define>
+    
+    <define name="requestContent">
+        <attribute name="method" />
+        <attribute name="url" />
+        
+        <optional>
+            <element name="auth">
+                <attribute name="username" />
+                <attribute name="password" />
+            </element>
+        </optional>
+            
+        <optional>
+            <element name="headers">
+                <ref name="params" />
+            </element>
+        </optional>
+            
+        <optional>
+            <choice>
+                <element name="body">
+                    <attribute name="type">
+                        <value>post</value>
+                    </attribute>
+                    <ref name="params" />
+                </element>
+                
+                <element name="body">
+                    <attribute name="type">
+                        <value>content</value>
+                    </attribute>
+                    <text />
+                </element>
+                
+                <element name="body">
+                    <attribute name="type">
+                        <value>file</value>
+                    </attribute>
+                    <text />
+                </element>
+            </choice>
+        </optional>
+    </define>
+    
+    <define name="params">
+        <oneOrMore>
+            <element name="param">
+                <attribute name="name" />
+                <text />
+            </element>
+        </oneOrMore>
+    </define>
+</grammar>
