@@ -10,13 +10,19 @@ except:
     from StringIO import StringIO
     
 def detab_contents(contents):
+    """
+    Removes formatting tabs from Python code so it can be executed without a
+    syntax error
+    """
     lines = contents.splitlines()
     
+    #Remove the first and last line if they're blank
     if len(lines) > 0 and lines[0].strip() == '':
         lines = lines[1:]
     if len(lines) > 0 and lines[-1].strip() == '':
         lines = lines[:-1]
     
+    #Get the amount of whitespace in the first line of code
     whitespace = ''
     if len(lines) > 0:
         stripped = lines[0].lstrip()
@@ -25,11 +31,13 @@ def detab_contents(contents):
             diff = len(lines[0]) - len(stripped)
             whitespace = lines[0][:diff]
             
+    #Remove that amount of whitespace from each line
     if whitespace != '':
         for i in xrange(0, len(lines)):
             if lines[i].startswith(whitespace):
                 lines[i] = lines[i][len(whitespace):]
                 
+    #Write out the code
     actual = StringIO()
     for line in lines:
         actual.write(line)
@@ -40,6 +48,9 @@ def detab_contents(contents):
     return value
 
 def tab_contents(contents, num_spaces):
+    """
+    Inserts the specified amount of spaces in front of each line of the contents
+    """
     tabbed = StringIO()
     spaces = ' ' * num_spaces
     
@@ -53,6 +64,8 @@ def tab_contents(contents, num_spaces):
     return tabbed_contents
 
 class RequestBody(object):
+    """Descriptor of the body sent from the client when the request is made"""
+    
     def __init__(self, type):
         self.type = type
         
@@ -75,10 +88,16 @@ class RequestBody(object):
             raise ValueError('unknown type: ' + self.type)
             
 class ExpectedBody(object):
+    """Descriptor of the body expected back from the server"""
+    
     def __init__(self, type):
         self.type = type
         
     def matches(self, request, contents):
+        """
+        Returns true if the contents from the server matches the expected body
+        """
+        
         if self.type == 'python':
             vars = {
                 'response': response,
@@ -91,6 +110,8 @@ class ExpectedBody(object):
             return contents == self.value
 
 class TestCase(object):
+    """Descriptor of a test case"""
+    
     def __init__(self, name):
         self.name = name
         self.auth = None
@@ -100,6 +121,8 @@ class TestCase(object):
         self.headers = {}
         
 class TestFileHandler(sax.ContentHandler):
+    """Parses a test XML file"""
+    
     def __init__(self):
         self.tests = []
         self._buffer = None
@@ -148,6 +171,8 @@ class TestFileHandler(sax.ContentHandler):
             self.tests.append(self._testcase)
         
 def parse_file(filename):
+    """Parses a test XML file into a list of test cases"""
+    
     handler = TestFileHandler()
     handler.file = filename
     
@@ -172,6 +197,8 @@ def run(testcase):
     if testcase.auth:
         http.add_credentials(testcase.auth[0], testcase.auth[1])
     
+    #Content-type must be application/x-www-form-urlencoded if we are sending
+    #POST parameters
     if testcase.body and testcase.body.type == 'post':
         testcase.headers['Content-type'] = 'application/x-www-form-urlencoded'
         
@@ -179,6 +206,7 @@ def run(testcase):
         body = str(testcase.body)
         response, contents = http.request(testcase.url, testcase.method, body=body, headers=testcase.headers)
         
+        #Check that the status matches the expected value if specified
         if testcase.status and testcase.status != response.status:
             print '  FAIL: Response status (%s) does not match expected value (%s)' % (response.status, testcase.status)
             
@@ -189,6 +217,7 @@ def run(testcase):
             fail_count += 1
             return
         
+        #Check that the response contents matches the expected if specified
         if testcase.expected and not testcase.expected.matches(response, contents):
             print '  FAIL: Response content failed %s test' % testcase.expected.type
             print '    Test:'
@@ -201,6 +230,9 @@ def run(testcase):
         pass_count += 1
         
     except Exception, e:
+        #If an error was thrown, then the test case failed; print the stack
+        #trace
+        
         fail_count += 1
         print '  FAIL: An error occurred (%s)' % str(e)
         
@@ -213,6 +245,8 @@ def run(testcase):
         print tab_contents(traceback_str, 4)
     
 def main():
+    """Runs Catnap"""
+    
     parser = OptionParser(usage="usage: %prog [options] <file 1> <file 2> ...")
     parser.add_option("-t", "--time", dest="timeout", action="store", type="int",
                       help="number of seconds before timeout (default 4)", default="4")
@@ -227,6 +261,7 @@ def main():
     global verbose
     verbose = options.verbose
     
+    #Make the worker execute each test case in the queue
     tests = Queue.Queue()
     def worker():
         while True:
@@ -234,10 +269,12 @@ def main():
             run(testcase)
             tests.task_done()
     
+    #Creates multiple threads that execute the worker, specified as a parameter
     for i in range(options.threads):
         thread = Thread(target=worker)
         thread.start()
     
+    #Parse each of the files and enqueue the test cases
     for arg in args:
         for testcase in parse_file(arg):
             tests.put(testcase)
