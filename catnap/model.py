@@ -50,13 +50,27 @@ class ExpectedBody(object):
 class TestCase(object):
     """Descriptor of a test case"""
     
-    def __init__(self, name):
+    def __init__(self, name, method, url, headers={}, auth=None, body=None, expected_status=None, expected_body=None):
+        """
+        Creates a new testcase.
+        name - The name of the testcase
+        method - The HTTP verb to use
+        url - The URL to request
+        headers - HTTP headers to use
+        auth - A tuple of (username, password) authentication credentials
+        body - A RequestBody object specifying the input body
+        expected_status - The expected response status
+        expected_body - An ExpectedBody object specifying the response's expected body
+        """
+        
         self.name = name
-        self.auth = None
-        self.body = None
-        self.status = None
-        self.expected = None
-        self.headers = {}
+        self.method = method
+        self.url = url
+        self.headers = headers
+        self.auth = auth
+        self.body = body
+        self.expected_status = status
+        self.expected_body = expected_body
         
 class TestFileHandler(sax.ContentHandler):
     """Parses a test XML file"""
@@ -67,7 +81,7 @@ class TestFileHandler(sax.ContentHandler):
     
     def startElement(self, name, attrs):
         if name == 'testcase':
-            self._testcase = TestCase(attrs['name'])
+            self._testcase = TestCase(attrs['name'], None, None)
             
         elif name == 'request':
             self._testcase.method = attrs['method']
@@ -85,7 +99,6 @@ class TestFileHandler(sax.ContentHandler):
         elif name == 'expected':
             self._testcase.expected = ExpectedBody(attrs['type'])
         
-            
         if self._buffer:
             self._buffer.close()
         self._buffer = StringIO()
@@ -124,10 +137,14 @@ def parse_file(filename):
             return parse_pickle(filename)
 
 def parse_pickle(filename):
+    """Parses a pickle file into a list of test cases"""
+    
     with open(filename) as file:
         return pickle.load(file)
 
 def parse_xml(filename):
+    """Parses an XML file into a list of test cases"""
+    
     handler = TestFileHandler()
     handler.file = filename
     

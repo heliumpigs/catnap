@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import sys, httplib2, socket, Queue, traceback, util, model
+import sys, httplib2, socket, Queue, traceback
+from catnap import util, model
 from threading import Thread
 from optparse import OptionParser
 
@@ -11,7 +12,7 @@ except:
 verbose = False
 pass_count = 0
 fail_count = 0
-                
+       
 def run(testcase):
     """Runs a specified testcase"""
     global verbose, pass_count, fail_count
@@ -32,8 +33,8 @@ def run(testcase):
         response, contents = http.request(testcase.url, testcase.method, body=body, headers=testcase.headers)
         
         #Check that the status matches the expected value if specified
-        if testcase.status and testcase.status != response.status:
-            print '  FAIL: Response status (%s) does not match expected value (%s)' % (response.status, testcase.status)
+        if testcase.expected_status and testcase.expected_status != response.status:
+            print '  FAIL: Response status (%s) does not match expected value (%s)' % (response.status, testcase.expected_status)
             
             if verbose:
                 print '    Response content:'
@@ -43,10 +44,10 @@ def run(testcase):
             return
         
         #Check that the response contents matches the expected if specified
-        if testcase.expected and not testcase.expected.matches(response, contents):
-            print '  FAIL: Response content failed %s test' % testcase.expected.type
+        if testcase.expected_body and not testcase.expected_body.matches(response, contents):
+            print '  FAIL: Response content failed %s test' % testcase.expected_body.type
             print '    Test:'
-            print tab_contents(testcase.expected, 6)
+            print tab_contents(testcase.expected_body, 6)
             print '    Response content:'
             print tab_contents(contents, 6)
             
@@ -85,8 +86,6 @@ def main():
     
     global verbose
     verbose = options.verbose
-    num_tests = sys.maxint
-    tests_run = 0
     
     #Make the worker execute each test case in the queue
     tests = Queue.Queue()
@@ -95,9 +94,6 @@ def main():
             testcase = tests.get()
             run(testcase)
             tests.task_done()
-            
-            tests_run += 1
-            if tests_run >= num_tests: return
     
     #Creates multiple threads that execute the worker, specified as a parameter
     for i in range(options.threads):
@@ -108,8 +104,7 @@ def main():
     for arg in args:
         for testcase in model.parse_file(arg):
             tests.put(testcase)
-    
-    num_tests = len(tests)        
+
     tests.join()
     
     global pass_count, fail_count
