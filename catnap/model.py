@@ -23,15 +23,16 @@ class RequestBody(object):
             with open(path) as file:
                 return file.read()
         else:
-            raise ValueError('unknown type: ' + self.type)
+            raise ValueError('unknown type: ' + str(self.type))
             
 class ExpectedBody(object):
     """Descriptor of the body expected back from the server"""
     
-    def __init__(self, type):
+    def __init__(self, type, contents=None):
         self.type = type
+        self.contents = contents
         
-    def matches(self, request, contents):
+    def matches(self, response, contents):
         """
         Returns true if the contents from the server matches the expected body
         """
@@ -42,7 +43,7 @@ class ExpectedBody(object):
                 'contents': contents
             }
             
-            exec self.value in vars
+            exec self.contents in vars
             return True
         elif self.type == 'text':
             return contents == self.value
@@ -69,7 +70,7 @@ class TestCase(object):
         self.headers = headers
         self.auth = auth
         self.body = body
-        self.expected_status = status
+        self.expected_status = expected_status
         self.expected_body = expected_body
         
 class TestFileHandler(sax.ContentHandler):

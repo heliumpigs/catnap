@@ -29,8 +29,7 @@ def run(testcase):
         testcase.headers['Content-type'] = 'application/x-www-form-urlencoded'
         
     try:
-        body = str(testcase.body)
-        response, contents = http.request(testcase.url, testcase.method, body=body, headers=testcase.headers)
+        response, contents = http.request(testcase.url, testcase.method, body=str(testcase.body), headers=testcase.headers)
         
         #Check that the status matches the expected value if specified
         if testcase.expected_status and testcase.expected_status != response.status:
@@ -38,7 +37,7 @@ def run(testcase):
             
             if verbose:
                 print '    Response content:'
-                print tab_contents(contents, 6)
+                print util.tab_contents(contents, 6)
             
             fail_count += 1
             return
@@ -47,9 +46,9 @@ def run(testcase):
         if testcase.expected_body and not testcase.expected_body.matches(response, contents):
             print '  FAIL: Response content failed %s test' % testcase.expected_body.type
             print '    Test:'
-            print tab_contents(testcase.expected_body, 6)
+            print util.tab_contents(testcase.expected_body, 6)
             print '    Response content:'
-            print tab_contents(contents, 6)
+            print util.tab_contents(contents, 6)
             
             fail_count += 1
             
@@ -68,7 +67,7 @@ def run(testcase):
         traceback_str = traceback_buffer.getvalue()
         traceback_buffer.close()
         
-        print tab_contents(traceback_str, 4)
+        print util.tab_contents(traceback_str, 4)
     
 def main():
     """Runs Catnap"""
