@@ -1,6 +1,11 @@
 import os, urllib, util, pickle
 from xml import sax
 
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
+
 class RequestBody(object):
     """Descriptor of the body sent from the client when the request is made"""
     
