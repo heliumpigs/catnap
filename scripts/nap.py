@@ -97,6 +97,7 @@ def main():
     #Creates multiple threads that execute the worker, specified as a parameter
     for i in range(options.threads):
         thread = Thread(target=worker)
+        thread.setDaemon(True)
         thread.start()
     
     #Parse each of the files and enqueue the test cases
