@@ -51,7 +51,7 @@ class ExpectedBody(object):
             exec self.contents in vars
             return True
         elif self.type == 'text':
-            return contents == self.value
+            return contents == self.contents
 
 class TestCase(object):
     """Descriptor of a test case"""
@@ -102,8 +102,8 @@ class TestFileHandler(sax.ContentHandler):
         elif name == 'param':
             self._cur_param = attrs['name']
         
-        elif name == 'expected':
-            self._testcase.expected = ExpectedBody(attrs['type'])
+        elif name == 'contents':
+            self._testcase.expected_body = ExpectedBody(attrs['type'])
         
         if self._buffer:
             self._buffer.close()
@@ -119,11 +119,11 @@ class TestFileHandler(sax.ContentHandler):
             if self._testcase.body.type != 'post':
                 self._testcase.body.value = contents
         elif name == 'status':
-            self._testcase.status = int(contents.strip())
+            self._testcase.expected_status = int(contents.strip())
         elif name == 'param':
             self._cur_dict[self._cur_param] = contents
-        elif name == 'expected':
-            self._testcase.expected.value = util.detab_contents(contents)
+        elif name == 'contents':
+            self._testcase.expected_body.contents = util.detab_contents(contents)
         elif name == 'testcase':
             self.tests.append(self._testcase)
         

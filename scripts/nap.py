@@ -44,9 +44,9 @@ def run(testcase):
         
         #Check that the response contents matches the expected if specified
         if testcase.expected_body and not testcase.expected_body.matches(response, contents):
-            print '  FAIL: Response content failed %s test' % testcase.expected_body.type
-            print '    Test:'
-            print util.tab_contents(testcase.expected_body, 6)
+            print '  FAIL: Response content failed'
+            print '    Test (%s):' % testcase.expected_body.type
+            print util.tab_contents(testcase.expected_body.contents, 6)
             print '    Response content:'
             print util.tab_contents(contents, 6)
             
