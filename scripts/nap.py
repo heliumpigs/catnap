@@ -13,7 +13,7 @@ verbose = False
 pass_count = 0
 fail_count = 0
        
-def run(testcase):
+def run(testcase, use_cookies, cookie):
     """Runs a specified testcase"""
     global verbose, pass_count, fail_count
     
@@ -27,9 +27,15 @@ def run(testcase):
     #POST parameters
     if testcase.body and testcase.body.type == 'post':
         testcase.headers['Content-type'] = 'application/x-www-form-urlencoded'
+
+    if use_cookies and cookie:
+        testcase.headers['Cookie'] = cookie
         
     try:
         response, contents = http.request(testcase.url, testcase.method, body=str(testcase.body), headers=testcase.headers)
+
+        if use_cookies and 'set-cookie' in response:
+            cookie = response['set-cookie']
         
         #Check that the status matches the expected value if specified
         if testcase.expected_status and testcase.expected_status != response.status:
@@ -40,7 +46,7 @@ def run(testcase):
                 print util.tab_contents(contents, 6)
             
             fail_count += 1
-            return
+            return cookie
         
         #Check that the response contents matches the expected if specified
         if testcase.expected_body and not testcase.expected_body.matches(response, contents):
@@ -68,6 +74,8 @@ def run(testcase):
         traceback_buffer.close()
         
         print util.tab_contents(traceback_str, 4)
+
+    return cookie
     
 def main():
     """Runs Catnap"""
@@ -79,6 +87,8 @@ def main():
                       help="verbose output")
     parser.add_option("-s", "--threads", dest="threads", action="store", type="int",
                       help="number of concurrent tests to execute (default 1)", default="1")
+    parser.add_option("-c", "--cookies", dest="cookies", action="store_true",
+                      help="Enable support for cookies (disabled by default)")
     
     (options, args) = parser.parse_args()
     socket.timeout = options.timeout
@@ -88,10 +98,13 @@ def main():
     
     #Make the worker execute each test case in the queue
     tests = Queue.Queue()
+
     def worker():
+        cookie = None
+
         while True:
             testcase = tests.get()
-            run(testcase)
+            cookie = run(testcase, options.cookies, cookie)
             tests.task_done()
     
     #Creates multiple threads that execute the worker, specified as a parameter
